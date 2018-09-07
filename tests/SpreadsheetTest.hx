@@ -2,6 +2,7 @@ package;
 
 import spreadsheet.Spreadsheet;
 import spreadsheet.format.XlsWriter;
+import spreadsheet.format.XlsxWriter;
 import sys.io.File;
 import tink.unit.Assert.*;
 
@@ -30,6 +31,18 @@ class SpreadsheetTest {
         cell.setText('cell val');
         var output = File.write('test.xls');
         XlsWriter.write(spreadsheet, output);
+        output.close();
+        return assert(true);
+    }
+
+    public function testCreateXlsX()
+    {
+        var spreadsheet = new Spreadsheet();
+        var sheet = spreadsheet.sheetNamed('Data');
+        var cell = sheet.cellAt(0, 0);
+        cell.setText('cell val');
+        var output = File.write('test.xlsx');
+        XlsxWriter.write(spreadsheet, output);
         output.close();
         return assert(true);
     }
