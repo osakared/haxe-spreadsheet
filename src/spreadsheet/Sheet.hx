@@ -7,31 +7,35 @@ typedef CellIndex = {
 
 class Sheet
 {
-    private var columnWidths:Map<Int, Float>;
-    private var rowHeights:Map<Int, Float>;
+    public var name(default, null):String;
 
-    private var columns:Map<Int, Map<Int, Cell>>;
+    public var columnWidths(default, null):Map<Int, Float>;
+    public var rowHeights(default, null):Map<Int, Float>;
 
-    public function new()
+    public var rows(default, null):Map<Int, Map<Int, Cell>>;
+
+    public function new(_name:String)
     {
+        name = _name;
+
         columnWidths = new Map<Int, Float>();
         rowHeights = new Map<Int, Float>();
 
-        columns = new Map<Int, Map<Int, Cell>>();
+        rows = new Map<Int, Map<Int, Cell>>();
     }
 
     public function cellAt(columnIndex:Int, rowIndex:Int):Cell
     {
         // TODO validate bounds here, return null if invalid
-        var column = columns.get(columnIndex);
-        if (column == null) {
-            column = new Map<Int, Cell>();
-            columns.set(columnIndex, column);
+        var row = rows.get(rowIndex);
+        if (row == null) {
+            row = new Map<Int, Cell>();
+            rows.set(rowIndex, row);
         }
-        var cell = column.get(rowIndex);
+        var cell = row.get(columnIndex);
         if (cell == null) {
             cell = new Cell();
-            column.set(rowIndex, cell);
+            row.set(columnIndex, cell);
         }
         return cell;
     }

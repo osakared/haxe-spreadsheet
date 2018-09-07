@@ -7,3 +7,5 @@
 -js bin/tests.js
 -xml bin/tests.xml
 -cmd node bin/tests.js
+# -cpp bin/tests
+# -cmd ./bin/tests/RunTests

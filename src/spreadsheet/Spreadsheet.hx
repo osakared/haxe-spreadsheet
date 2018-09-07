@@ -1,21 +1,16 @@
 package spreadsheet;
 
-typedef SheetEntry = {
-    var sheet:Sheet;
-    var name:String;
-}
-
 /**
  * A spreadsheet. A spreadsheet can contain a number of sheets.
  * This allows adding/removing sheets to a spreadsheet.
  */
 class Spreadsheet
 {
-    private var sheets:Array<SheetEntry>;
+    private var sheets:Array<Sheet>;
 
     public function new()
     {
-        sheets = new Array<SheetEntry>();
+        sheets = new Array<Sheet>();
     }
 
     /**
@@ -25,7 +20,7 @@ class Spreadsheet
      */
     public function sheetAt(index:Int):Sheet
     {
-        return sheets[index].sheet;
+        return sheets[index];
     }
 
     /**
@@ -34,14 +29,13 @@ class Spreadsheet
      */
     public function sheetNamed(name:String):Sheet
     {
-        for (sheetEntry in sheets) {
-            if (sheetEntry.name == name) {
-                return sheetEntry.sheet;
+        for (sheet in sheets) {
+            if (sheet.name == name) {
+                return sheet;
             }
         }
-        var sheet = new Sheet();
-        var sheetEntry = { sheet: sheet, name: name };
-        sheets.push(sheetEntry);
+        var sheet = new Sheet(name);
+        sheets.push(sheet);
         return sheet;
     }
 
