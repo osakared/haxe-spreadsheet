@@ -23,6 +23,11 @@ class SpreadsheetTest {
         return assert(cell.value == 'cell val');
     }
 
+    public function testCoordinates()
+    {
+        return assert(XlsxWriter.nameFromCoordinates(4, 3) == 'E4');
+    }
+
     public function testCreateXls()
     {
         var spreadsheet = new Spreadsheet();
