@@ -1,8 +1,11 @@
 package spreadsheet.format;
 
+import haxe.io.Bytes;
 import haxe.io.Output;
 import haxe.Resource;
 import haxe.zip.Entry;
+
+typedef SharedStrings = Map<String, Array<Xml>>;
 
 class XlsxWriter
 {
@@ -18,37 +21,85 @@ class XlsxWriter
             'docProps/app.xml',
             'docProps/core.xml',
             'xl/_rels/workbook.xml.rels',
-            'xl/sharedStrings.xml',
             'xl/styles.xml',
             'xl/theme/theme1.xml',
-            'xl/workbook.xml',
-            'xl/worksheets/sheet1.xml'
+            'xl/workbook.xml'
         ];
+
+        // Because of "shared strings" we gotta go through once to assemble these strings, then print to string after finalizing
+        var sharedStrings = new SharedStrings();
+        var sheetXmls = new Array<Xml>();
 
         for (sheetIndex in 0...spreadsheet.numSheets()) {
             var sheet = spreadsheet.sheetAt(sheetIndex);
-            var sheetXml = xmlFromSheet(sheet);
+            var sheetXml = xmlFromSheet(sheet, sharedStrings);
+            sheetXmls.push(sheetXml);
+        }
+
+        // Make shared strings
+        var sharedStringsXml = xmlFromSharedStrings(sharedStrings);
+        var sharedStringsBytes = Bytes.ofString(sharedStringsXml.toString());
+        trace(sharedStringsXml.toString());
+        entries.push(bytesToEntry(sharedStringsBytes, 'xl/sharedStrings.xml'));
+
+        // Save the sheet xmls
+        var sheetIndex = 0;
+        for (sheetXml in sheetXmls) {
+            var sheetBytes = Bytes.ofString(sheetXml.toString());
+            entries.push(bytesToEntry(sheetBytes, 'xl/worksheets/sheet${sheetIndex + 1}.xml'));
+            sheetIndex++;
         }
 
         for (prefabFile in prefabFiles) {
             var bytes = Resource.getBytes('xlsx/' + prefabFile);
-            var entry = {
-                fileName: prefabFile,
-                fileSize: bytes.length,
-                fileTime: Date.now(),
-                compressed: false,
-                dataSize: bytes.length,
-                data: bytes,
-                crc32: haxe.crypto.Crc32.make(bytes),
-                extraFields: null
-            }
-            entries.push(entry);
+            entries.push(bytesToEntry(bytes, prefabFile));
         }
 
         zipWriter.write(entries);
     }
 
-    static private function xmlFromSheet(sheet:Sheet):Xml
+    static private function bytesToEntry(bytes:Bytes, filename:String):Entry
+    {
+        return {
+            fileName: filename,
+            fileSize: bytes.length,
+            fileTime: Date.now(),
+            compressed: false,
+            dataSize: bytes.length,
+            data: bytes,
+            crc32: haxe.crypto.Crc32.make(bytes),
+            extraFields: null
+        }
+    }
+
+    static private function xmlFromSharedStrings(sharedStrings:SharedStrings):Xml
+    {
+        var sharedStringsXml = Xml.createElement('sst');
+        sharedStringsXml.set('xmlns', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+
+        var uniqueCount:Int = 0;
+        for (sharedString in sharedStrings.keys()) {
+            var si = Xml.createElement('si');
+            var t = Xml.createElement('t');
+            var pcData = Xml.createPCData(sharedString);
+            t.addChild(pcData);
+            si.addChild(t);
+            sharedStringsXml.addChild(si);
+
+            var likeElements = sharedStrings[sharedString];
+            for (likeElement in likeElements) {
+                var referenceData = Xml.createPCData(Std.string(uniqueCount));
+                likeElement.addChild(referenceData);
+            }
+
+            uniqueCount++;
+        }
+        sharedStringsXml.set('uniqueCount', Std.string(uniqueCount));
+
+        return sharedStringsXml;
+    }
+
+    static private function xmlFromSheet(sheet:Sheet, sharedStrings:SharedStrings):Xml
     {
         // TODO rewrite all of this to be easier to read with inline xml once haxe adds support for that
         var worksheet = Xml.createElement('worksheet');
@@ -81,26 +132,45 @@ class XlsxWriter
 
         // sheetData
         var sheetData = Xml.createElement('sheetData');
-        var rowIndex = 1;
+        var rowIndex = 0;
         for (row in sheet.rows) {
-            var rowXml = xmlFromRow(row);
-            rowXml.set('r', Std.string(rowIndex));
+            sheetData.addChild(xmlFromRow(row, rowIndex, sharedStrings));
             rowIndex++;
-            sheetData.addChild(rowXml);
         }
         worksheet.addChild(sheetData);
 
         return worksheet;
     }
 
-    static private function xmlFromRow(row:Map<Int, Cell>):Xml
+    static private function xmlFromRow(row:Map<Int, Cell>, rowIndex:Int, sharedStrings:SharedStrings):Xml
     {
         var rowXml = Xml.createElement('row');
+        rowXml.set('r', Std.string(rowIndex + 1));
         for (cellIndex in row.keys()) {
             var cell = row[cellIndex];
-            var cellXml = Xml.createElement('c');
+            var cellXml = xmlFromCell(cell, cellIndex, rowIndex, sharedStrings);
+            rowXml.addChild(cellXml);
         }
         return rowXml;
+    }
+
+    static private function xmlFromCell(cell:Cell, cellIndex:Int, rowIndex:Int, sharedStrings:SharedStrings):Xml
+    {
+        var cellXml = Xml.createElement('c');
+        cellXml.set('r', nameFromCoordinates(cellIndex, rowIndex));
+        cellXml.set('t', 's'); // TODO actually set the correct cell type
+        var v = Xml.createElement('v');
+        // TODO if type is string
+        var likeElements = sharedStrings[cell.value];
+        if (likeElements == null) {
+            sharedStrings[cell.value] = new Array<Xml>();
+            likeElements = sharedStrings[cell.value];
+        }
+        likeElements.push(v);
+        // var val = Xml.createPCData(cell.value); // TODO actually use the correct value
+        // v.addChild(val);
+        cellXml.addChild(v);
+        return cellXml;
     }
 
     static public function nameFromCoordinates(columnIndex:Int, rowIndex:Int):String
