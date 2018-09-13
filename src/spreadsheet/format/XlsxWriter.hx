@@ -39,7 +39,6 @@ class XlsxWriter
         // Make shared strings
         var sharedStringsXml = xmlFromSharedStrings(sharedStrings);
         var sharedStringsBytes = Bytes.ofString(sharedStringsXml.toString());
-        trace(sharedStringsXml.toString());
         entries.push(bytesToEntry(sharedStringsBytes, 'xl/sharedStrings.xml'));
 
         // Save the sheet xmls
@@ -148,6 +147,7 @@ class XlsxWriter
         rowXml.set('r', Std.string(rowIndex + 1));
         for (cellIndex in row.keys()) {
             var cell = row[cellIndex];
+            if (cell.cellType == None) continue;
             var cellXml = xmlFromCell(cell, cellIndex, rowIndex, sharedStrings);
             rowXml.addChild(cellXml);
         }
@@ -158,19 +158,38 @@ class XlsxWriter
     {
         var cellXml = Xml.createElement('c');
         cellXml.set('r', nameFromCoordinates(cellIndex, rowIndex));
-        cellXml.set('t', 's'); // TODO actually set the correct cell type
+        switch (cell.cellType) {
+            case Text:
+                cellXml.set('t', 's');
+                var v = valueXmlFromSharedString(cell, sharedStrings);
+                cellXml.addChild(v);
+            case Int | Float:
+                cellXml.set('t', 'n');
+                var v = valueXmlFromNumber(cell);
+                cellXml.addChild(v);
+            default: trace('err');
+        }
+        return cellXml;
+    }
+
+    static private function valueXmlFromSharedString(cell:Cell, sharedStrings:SharedStrings):Xml
+    {
         var v = Xml.createElement('v');
-        // TODO if type is string
         var likeElements = sharedStrings[cell.value];
         if (likeElements == null) {
             sharedStrings[cell.value] = new Array<Xml>();
             likeElements = sharedStrings[cell.value];
         }
         likeElements.push(v);
-        // var val = Xml.createPCData(cell.value); // TODO actually use the correct value
-        // v.addChild(val);
-        cellXml.addChild(v);
-        return cellXml;
+        return v;
+    }
+
+    static private function valueXmlFromNumber(cell:Cell):Xml
+    {
+        var v = Xml.createElement('v');
+        var number = Xml.createPCData(Std.string(cell.numberValue));
+        v.addChild(number);
+        return v;
     }
 
     static public function nameFromCoordinates(columnIndex:Int, rowIndex:Int):String

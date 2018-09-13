@@ -46,6 +46,8 @@ class SpreadsheetTest {
         var sheet = spreadsheet.sheetNamed('Data');
         var cell = sheet.cellAt(0, 0);
         cell.setText('cell val');
+        sheet.cellAt(0, 1).setInt(5);
+        sheet.cellAt(0, 2).setInt(6);
         var output = File.write('test.xlsx');
         XlsxWriter.write(spreadsheet, output);
         output.close();

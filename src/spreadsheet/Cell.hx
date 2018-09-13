@@ -52,6 +52,12 @@ class Cell
         cellType = Text;
     }
 
+    public function setInt(newValue:Int)
+    {
+        numberValue = newValue;
+        cellType = Int;
+    }
+
     public function setFloat(newValue:Float)
     {
         numberValue = newValue;
