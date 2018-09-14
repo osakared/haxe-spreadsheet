@@ -75,4 +75,16 @@ class Cell
         dateValue = newValue;
         cellType = Time;
     }
+
+    public function setNone()
+    {
+        cellType = None;
+    }
+
+    public function setFormula(formula:String, result:Float)
+    {
+        value = formula;
+        numberValue = result;
+        cellType = Formula;
+    }
 }

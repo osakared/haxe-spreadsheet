@@ -172,7 +172,10 @@ class XlsxWriter
                 cellXml.set('s', styleFromType(cell.cellType));
                 var v = valueXmlFromDate(cell);
                 cellXml.addChild(v);
-            default: trace('err');
+            case Formula:
+                addValueXmlFromFormula(cellXml, cell);
+            case None:
+                trace('err');
         }
         return cellXml;
     }
@@ -213,6 +216,18 @@ class XlsxWriter
         var number = Xml.createPCData(timeString);
         v.addChild(number);
         return v;
+    }
+
+    static private function addValueXmlFromFormula(cellXml:Xml, cell:Cell)
+    {
+        var v = Xml.createElement('v');
+        var calculation = Xml.createPCData(Std.string(cell.numberValue));
+        v.addChild(calculation);
+        var f = Xml.createElement('f');
+        var formula = Xml.createPCData(cell.value);
+        f.addChild(formula);
+        cellXml.addChild(f);
+        cellXml.addChild(v);
     }
 
     static public function nameFromCoordinates(columnIndex:Int, rowIndex:Int):String

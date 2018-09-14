@@ -49,6 +49,7 @@ class SpreadsheetTest {
         sheet.cellAt(0, 2).setInt(6);
         sheet.cellAt(2, 0).setDate(new Date(1989, 4, 2, 0, 0, 0));
         sheet.cellAt(2, 1).setTime(new Date(0, 0, 0, 16, 20, 0));
+        sheet.cellAt(1, 0).setFormula('SUM(A:A)', 11);
         var output = File.write('test.xlsx');
         XlsxWriter.write(spreadsheet, output);
         output.close();
