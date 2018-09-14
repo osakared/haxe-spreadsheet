@@ -44,10 +44,11 @@ class SpreadsheetTest {
     {
         var spreadsheet = new Spreadsheet();
         var sheet = spreadsheet.sheetNamed('Data');
-        var cell = sheet.cellAt(0, 0);
-        cell.setText('cell val');
+        sheet.cellAt(0, 0).setText('cell val');
         sheet.cellAt(0, 1).setInt(5);
         sheet.cellAt(0, 2).setInt(6);
+        sheet.cellAt(2, 0).setDate(new Date(1989, 4, 2, 0, 0, 0));
+        sheet.cellAt(2, 1).setTime(new Date(0, 0, 0, 16, 20, 0));
         var output = File.write('test.xlsx');
         XlsxWriter.write(spreadsheet, output);
         output.close();

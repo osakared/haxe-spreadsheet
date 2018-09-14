@@ -167,9 +167,23 @@ class XlsxWriter
                 cellXml.set('t', 'n');
                 var v = valueXmlFromNumber(cell);
                 cellXml.addChild(v);
+            case Date | Time:
+                cellXml.set('t', 'd');
+                cellXml.set('s', styleFromType(cell.cellType));
+                var v = valueXmlFromDate(cell);
+                cellXml.addChild(v);
             default: trace('err');
         }
         return cellXml;
+    }
+
+    static private function styleFromType(cellType:Cell.CellType):String
+    {
+        return switch (cellType) {
+            case Date: '1';
+            case Time: '2';
+            default: '0';
+        }
     }
 
     static private function valueXmlFromSharedString(cell:Cell, sharedStrings:SharedStrings):Xml
@@ -188,6 +202,15 @@ class XlsxWriter
     {
         var v = Xml.createElement('v');
         var number = Xml.createPCData(Std.string(cell.numberValue));
+        v.addChild(number);
+        return v;
+    }
+
+    static private function valueXmlFromDate(cell:Cell):Xml
+    {
+        var v = Xml.createElement('v');
+        var timeString = DateTools.format(cell.dateValue, '%Y-%m-%dT%H:%M:%S.000');
+        var number = Xml.createPCData(timeString);
         v.addChild(number);
         return v;
     }
