@@ -131,10 +131,9 @@ class XlsxWriter
 
         // sheetData
         var sheetData = Xml.createElement('sheetData');
-        var rowIndex = 0;
-        for (row in sheet.rows) {
+        for (rowIndex in sheet.rows.keys()) {
+            var row = sheet.rows[rowIndex];
             sheetData.addChild(xmlFromRow(row, rowIndex, sharedStrings));
-            rowIndex++;
         }
         worksheet.addChild(sheetData);
 
