@@ -20,10 +20,8 @@ class XlsxWriter
             '_rels/.rels',
             'docProps/app.xml',
             'docProps/core.xml',
-            'xl/_rels/workbook.xml.rels',
             'xl/styles.xml',
-            'xl/theme/theme1.xml',
-            'xl/workbook.xml'
+            'xl/theme/theme1.xml'
         ];
 
         // Because of "shared strings" we gotta go through once to assemble these strings, then print to string after finalizing
@@ -49,12 +47,94 @@ class XlsxWriter
             sheetIndex++;
         }
 
+        // Save files that reference the different sheets
+        saveSheetRefXmls(spreadsheet, entries);
+
         for (prefabFile in prefabFiles) {
             var bytes = Resource.getBytes('xlsx/' + prefabFile);
             entries.push(bytesToEntry(bytes, prefabFile));
         }
 
         zipWriter.write(entries);
+    }
+
+    static private function saveSheetRefXmls(spreadsheet:Spreadsheet, entries:List<Entry>)
+    {
+        var workbookRels = Xml.createElement('Relationships');
+        workbookRels.set('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
+
+        var workbook = Xml.createElement('workbook');
+        workbook.set('xmlns', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        workbook.set('xmlns:r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+
+        workbook.addChild(Xml.createElement('workbookPr'));
+        workbook.addChild(Xml.createElement('workbookProtection'));
+
+        // Really wish haxe already had them inline xml literals
+        var bookViews = Xml.createElement('bookViews');
+        var workbookView = Xml.createElement('workbookView');
+        workbookView.set('showHorizontalScroll', 'true');
+        workbookView.set('showVerticalScroll', 'true');
+        workbookView.set('showSheetTabs', 'true');
+        workbookView.set('xWindow', '0');
+        workbookView.set('yWindow', '0');
+        workbookView.set('windowWidth', '16384');
+        workbookView.set('windowHeight', '8192');
+        workbookView.set('tabRatio', '500');
+        workbookView.set('firstSheet', '0');
+        workbookView.set('activeTab', '0');
+        bookViews.addChild(workbookView);
+        workbook.addChild(bookViews);
+
+        var calcPr = Xml.createElement('calcPr');
+        calcPr.set('iterateCount', '100');
+        calcPr.set('refMode', 'A1');
+        calcPr.set('iterate', 'false');
+        calcPr.set('iterateDelta', '0.001');
+        workbook.addChild(calcPr);
+
+        var sheets = Xml.createElement('sheets');
+
+        var refID = 1;
+
+        for (sheetIndex in 0...spreadsheet.numSheets()) {
+            var sheet = spreadsheet.sheetAt(sheetIndex);
+            var relationship = Xml.createElement('Relationship');
+            relationship.set('Id', 'rId$refID');
+            relationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet');
+            relationship.set('Target', 'worksheets/sheet$refID.xml');
+            workbookRels.addChild(relationship);
+
+            var sheetXml = Xml.createElement('sheet');
+            sheetXml.set('name', sheet.name);
+            sheetXml.set('sheetId', Std.string(refID));
+            sheetXml.set('state', 'visible');
+            sheetXml.set('r:id', 'rId$refID');
+            sheets.addChild(sheetXml);
+
+            refID++;
+        }
+
+        workbook.addChild(sheets);
+
+        var styleRelationship = Xml.createElement('Relationship');
+        styleRelationship.set('Id', 'rId$refID');
+        styleRelationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles');
+        styleRelationship.set('Target', 'worksheets/sheet$refID.xml');
+        workbookRels.addChild(styleRelationship);
+        refID++;
+
+        var sharedStringsRelationship = Xml.createElement('Relationship');
+        sharedStringsRelationship.set('Id', 'rId$refID');
+        sharedStringsRelationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings');
+        sharedStringsRelationship.set('Target', 'sharedStrings.xml');
+        workbookRels.addChild(sharedStringsRelationship);
+
+        var workbookRelsBytes = Bytes.ofString(workbookRels.toString());
+        entries.push(bytesToEntry(workbookRelsBytes, 'xl/_rels/workbook.xml.rels'));
+
+        var workbookBytes = Bytes.ofString(workbook.toString());
+        entries.push(bytesToEntry(workbookBytes, 'xl/workbook.xml'));
     }
 
     static private function bytesToEntry(bytes:Bytes, filename:String):Entry

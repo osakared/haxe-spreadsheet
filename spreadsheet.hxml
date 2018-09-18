@@ -4,10 +4,8 @@
 -resource res/xlsx/_rels/.rels@xlsx/_rels/.rels
 -resource res/xlsx/docProps/app.xml@xlsx/docProps/app.xml
 -resource res/xlsx/docProps/core.xml@xlsx/docProps/core.xml
--resource res/xlsx/xl/_rels/workbook.xml.rels@xlsx/xl/_rels/workbook.xml.rels
 -resource res/xlsx/xl/styles.xml@xlsx/xl/styles.xml
 -resource res/xlsx/xl/theme/theme1.xml@xlsx/xl/theme/theme1.xml
--resource res/xlsx/xl/workbook.xml@xlsx/xl/workbook.xml
 
 --each
 
