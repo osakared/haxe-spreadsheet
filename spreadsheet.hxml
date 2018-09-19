@@ -11,15 +11,15 @@
 
 -cp tests
 -lib tink_unittest
-# -lib hxnodejs
+-lib hxnodejs
 -dce full
 -main RunTests
 
-# -js bin/tests.js
+-js bin/tests.js
 -xml bin/tests.xml
-# -cmd node bin/tests.js
--cpp bin/tests
--cmd ./bin/tests/RunTests
+-cmd node bin/tests.js
+# -cpp bin/tests
+# -cmd ./bin/tests/RunTests
 
 --next
 
@@ -33,7 +33,11 @@ spreadsheet.Spreadsheet
 --next
 
 -cp tools
+-lib hxnodejs
 -main SpreadsheetExporter
 
 -cpp bin/SpreadsheetExporter
 -cmd ./bin/SpreadsheetExporter/SpreadsheetExporter ./example/source.json ./example/source.xlsx
+
+# -js bin/SpreadsheetExporter.js
+# -cmd node bin/SpreadsheetExporter.js
