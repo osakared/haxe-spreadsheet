@@ -16,7 +16,6 @@ class XlsxWriter
         var entries = new List<Entry>();
 
         var prefabFiles = [
-            '[Content_Types].xml',
             '_rels/.rels',
             'docProps/app.xml',
             'docProps/core.xml',
@@ -58,6 +57,54 @@ class XlsxWriter
         zipWriter.write(entries);
     }
 
+    static private function xmlFromContentTypes():Xml
+    {
+        var types = Xml.createElement('Types');
+        types.set('xmlns', 'http://schemas.openxmlformats.org/package/2006/content-types');
+
+        var relsDefault = Xml.createElement('Default');
+        relsDefault.set('ContentType', 'application/vnd.openxmlformats-package.relationships+xml');
+        relsDefault.set('Extension', 'rels');
+        types.addChild(relsDefault);
+
+        var xmlDefault = Xml.createElement('Default');
+        xmlDefault.set('ContentType', 'application/xml');
+        xmlDefault.set('Extension', 'xml');
+        types.addChild(xmlDefault);
+
+        var sharedStringsOverride = Xml.createElement('Override');
+        sharedStringsOverride.set('ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml');
+        sharedStringsOverride.set('PartName', '/xl/sharedStrings.xml');
+        types.addChild(sharedStringsOverride);
+
+        var stylesOverride = Xml.createElement('Override');
+        stylesOverride.set('ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml');
+        stylesOverride.set('PartName', '/xl/styles.xml');
+        types.addChild(stylesOverride);
+
+        var theme1Override = Xml.createElement('Override');
+        theme1Override.set('ContentType', 'application/vnd.openxmlformats-officedocument.theme+xml');
+        theme1Override.set('PartName', '/xl/theme/theme1.xml');
+        types.addChild(theme1Override);
+
+        var coreOverride = Xml.createElement('Override');
+        coreOverride.set('ContentType', 'application/vnd.openxmlformats-package.core-properties+xml');
+        coreOverride.set('PartName', '/docProps/core.xml');
+        types.addChild(coreOverride);
+
+        var appOverride = Xml.createElement('Override');
+        appOverride.set('ContentType', 'application/vnd.openxmlformats-officedocument.extended-properties+xml');
+        appOverride.set('PartName', '/docProps/app.xml');
+        types.addChild(appOverride);
+
+        var workbookOverride = Xml.createElement('Override');
+        workbookOverride.set('ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+        workbookOverride.set('PartName', '/xl/workbook.xml');
+        types.addChild(workbookOverride);
+
+        return types;
+    }
+
     static private function saveSheetRefXmls(spreadsheet:Spreadsheet, entries:List<Entry>)
     {
         var workbookRels = Xml.createElement('Relationships');
@@ -86,12 +133,7 @@ class XlsxWriter
         bookViews.addChild(workbookView);
         workbook.addChild(bookViews);
 
-        var calcPr = Xml.createElement('calcPr');
-        calcPr.set('iterateCount', '100');
-        calcPr.set('refMode', 'A1');
-        calcPr.set('iterate', 'false');
-        calcPr.set('iterateDelta', '0.001');
-        workbook.addChild(calcPr);
+        var contentTypes = xmlFromContentTypes();
 
         var sheets = Xml.createElement('sheets');
 
@@ -99,6 +141,7 @@ class XlsxWriter
 
         for (sheetIndex in 0...spreadsheet.numSheets()) {
             var sheet = spreadsheet.sheetAt(sheetIndex);
+
             var relationship = Xml.createElement('Relationship');
             relationship.set('Id', 'rId$refID');
             relationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet');
@@ -112,17 +155,15 @@ class XlsxWriter
             sheetXml.set('r:id', 'rId$refID');
             sheets.addChild(sheetXml);
 
+            var workbookOverride = Xml.createElement('Override');
+            workbookOverride.set('ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml');
+            workbookOverride.set('PartName', '/xl/worksheets/sheet$refID.xml');
+            contentTypes.addChild(workbookOverride);
+
             refID++;
         }
 
         workbook.addChild(sheets);
-
-        var styleRelationship = Xml.createElement('Relationship');
-        styleRelationship.set('Id', 'rId$refID');
-        styleRelationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles');
-        styleRelationship.set('Target', 'worksheets/sheet$refID.xml');
-        workbookRels.addChild(styleRelationship);
-        refID++;
 
         var sharedStringsRelationship = Xml.createElement('Relationship');
         sharedStringsRelationship.set('Id', 'rId$refID');
@@ -135,6 +176,9 @@ class XlsxWriter
 
         var workbookBytes = Bytes.ofString(workbook.toString());
         entries.push(bytesToEntry(workbookBytes, 'xl/workbook.xml'));
+
+        var contentTypesBytes = Bytes.ofString(contentTypes.toString());
+        entries.push(bytesToEntry(contentTypesBytes, '[Content_Types].xml'));
     }
 
     static private function bytesToEntry(bytes:Bytes, filename:String):Entry
@@ -157,6 +201,7 @@ class XlsxWriter
         sharedStringsXml.set('xmlns', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
 
         var uniqueCount:Int = 0;
+        var count:Int = 0;
         for (sharedString in sharedStrings.keys()) {
             var si = Xml.createElement('si');
             var t = Xml.createElement('t');
@@ -169,13 +214,22 @@ class XlsxWriter
             for (likeElement in likeElements) {
                 var referenceData = Xml.createPCData(Std.string(uniqueCount));
                 likeElement.addChild(referenceData);
+                count++;
             }
 
             uniqueCount++;
         }
         sharedStringsXml.set('uniqueCount', Std.string(uniqueCount));
+        sharedStringsXml.set('count', Std.string(count));
 
         return sharedStringsXml;
+    }
+
+    static private function compareKeys(a, b):Int
+    {
+        if (a < b) return -1;
+        else if (a > b) return 1;
+        return 0;
     }
 
     static private function xmlFromSheet(sheet:Sheet, sharedStrings:SharedStrings):Xml
@@ -196,6 +250,7 @@ class XlsxWriter
         // sheetViews
         var sheetViews = Xml.createElement('sheetViews');
         var sheetView = Xml.createElement('sheetView');
+        sheetView.set('workbookViewId', '1');
         var selection = Xml.createElement('selection');
         selection.set('activeCell', 'A1');
         selection.set('sqref', 'A1');
@@ -211,7 +266,9 @@ class XlsxWriter
 
         // sheetData
         var sheetData = Xml.createElement('sheetData');
-        for (rowIndex in sheet.rows.keys()) {
+        var rowIndices = [for(key in sheet.rows.keys()) key];
+        rowIndices.sort(compareKeys);
+        for (rowIndex in rowIndices) {
             var row = sheet.rows[rowIndex];
             sheetData.addChild(xmlFromRow(row, rowIndex, sharedStrings));
         }
@@ -224,7 +281,9 @@ class XlsxWriter
     {
         var rowXml = Xml.createElement('row');
         rowXml.set('r', Std.string(rowIndex + 1));
-        for (cellIndex in row.keys()) {
+        var cellIndices = [for(key in row.keys()) key];
+        cellIndices.sort(compareKeys);
+        for (cellIndex in cellIndices) {
             var cell = row[cellIndex];
             if (cell.cellType == None) continue;
             var cellXml = xmlFromCell(cell, cellIndex, rowIndex, sharedStrings);
@@ -247,7 +306,6 @@ class XlsxWriter
                 var v = valueXmlFromNumber(cell);
                 cellXml.addChild(v);
             case Date | Time:
-                cellXml.set('t', 'd');
                 cellXml.set('s', styleFromType(cell.cellType));
                 var v = valueXmlFromDate(cell);
                 cellXml.addChild(v);
@@ -288,11 +346,43 @@ class XlsxWriter
         return v;
     }
 
+    // To the whacky format Microsoft uses - days since 1900
+    static public function toOADate(date:Date):Float
+    {
+        var year = date.getFullYear();
+        var month = date.getMonth();
+        
+        if (month > 2) {
+            month -= 3;
+        }
+        else {
+            month += 9;
+            year -= 1;
+        }
+        
+        var yearString:String = Std.string(year);
+        var century:Int = Std.parseInt(yearString.substring(0, yearString.length - 2));
+        var decade:Int = Std.parseInt(yearString.substring(yearString.length - 2, yearString.length));
+
+        // Calculate the whole/day portion
+        var oaDate:Float = Math.ffloor(146097 * century / 4) + Math.ffloor((1461 * decade) / 4) +
+                           Math.ffloor((153 * month + 2) / 5) + date.getDate() + 1721119 - 2415019;
+
+        // Correct for Excel wrongly thinking 1900 was a leap year
+        if (year == 1900 && month <= 2) {
+            oaDate -= 1;
+        }
+
+        // Calculate the fractional/time portion
+        oaDate += ((date.getHours() * 3600) + (date.getMinutes() * 60) + date.getSeconds()) / 86400;
+
+        return oaDate;
+    }
+
     static private function valueXmlFromDate(cell:Cell):Xml
     {
         var v = Xml.createElement('v');
-        var timeString = DateTools.format(cell.dateValue, '%Y-%m-%dT%H:%M:%S.000');
-        var number = Xml.createPCData(timeString);
+        var number = Xml.createPCData(Std.string(toOADate(cell.dateValue)));
         v.addChild(number);
         return v;
     }

@@ -1,6 +1,5 @@
 -cp src
 
--resource res/xlsx/[Content_Types].xml@xlsx/[Content_Types].xml
 -resource res/xlsx/_rels/.rels@xlsx/_rels/.rels
 -resource res/xlsx/docProps/app.xml@xlsx/docProps/app.xml
 -resource res/xlsx/docProps/core.xml@xlsx/docProps/core.xml
@@ -37,7 +36,11 @@ spreadsheet.Spreadsheet
 -main SpreadsheetExporter
 
 -cpp bin/SpreadsheetExporter
--cmd ./bin/SpreadsheetExporter/SpreadsheetExporter ./example/source.json ./example/source.xlsx
 
+# To get around limitation of hxml where I can't enter the full path, do a cd first
+-cmd cd ./bin/SpreadsheetExporter/
+-cmd SpreadsheetExporter ../../example/source.json ../../example/source.xlsx
+
+# Doesn't work because nodejs doesn't provide sys
 # -js bin/SpreadsheetExporter.js
 # -cmd node bin/SpreadsheetExporter.js

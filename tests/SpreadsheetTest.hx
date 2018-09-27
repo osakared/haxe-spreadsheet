@@ -56,4 +56,11 @@ class SpreadsheetTest {
         return assert(true);
     }
 
+    public function testOADate()
+    {
+        var date = new Date(1904, 12, 12, 1, 4, 1);
+        var oaDate = XlsxWriter.toOADate(date);
+        return assert(Math.abs(oaDate - 1808.04445601852) < 0.00001);
+    }
+
 }
