@@ -10,15 +10,20 @@
 
 -cp tests
 -lib tink_unittest
--lib hxnodejs
 -dce full
 -main RunTests
 
--js bin/tests.js
 -xml bin/tests.xml
+
+-lib hxnodejs
+-js bin/tests.js
 -cmd node bin/tests.js
+
 # -cpp bin/tests
 # -cmd ./bin/tests/RunTests
+
+# -hl bin/tests.hl
+# -cmd hl bin/tests.hl
 
 --next
 
@@ -36,10 +41,10 @@ spreadsheet.Spreadsheet
 -main SpreadsheetExporter
 
 -cpp bin/SpreadsheetExporter
+# -cmd ./bin/SpreadsheetExporter/SpreadsheetExporter ../../example/source.json ../../example/source.xlsx
 
-# To get around limitation of hxml where I can't enter the full path, do a cd first
--cmd cd ./bin/SpreadsheetExporter/
--cmd SpreadsheetExporter ../../example/source.json ../../example/source.xlsx
+# -python bin/SpreadsheetExporter.py
+# -cmd python3 bin/SpreadsheetExporter.py
 
 # Doesn't work because nodejs doesn't provide sys
 # -js bin/SpreadsheetExporter.js
