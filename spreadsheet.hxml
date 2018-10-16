@@ -39,7 +39,7 @@ spreadsheet.Spreadsheet
 
 # To get around limitation of hxml where I can't enter the full path, do a cd first
 -cmd cd ./bin/SpreadsheetExporter/
--cmd SpreadsheetExporter ../../example/source.json ../../example/source.xlsx
+-cmd ./SpreadsheetExporter ../../example/source.json ../../example/source.xlsx
 
 # Doesn't work because nodejs doesn't provide sys
 # -js bin/SpreadsheetExporter.js
