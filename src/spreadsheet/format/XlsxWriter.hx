@@ -115,7 +115,6 @@ class XlsxWriter
         workbook.set('xmlns:r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
 
         workbook.addChild(Xml.createElement('workbookPr'));
-        workbook.addChild(Xml.createElement('workbookProtection'));
 
         // Really wish haxe already had them inline xml literals
         var bookViews = Xml.createElement('bookViews');
@@ -164,6 +163,20 @@ class XlsxWriter
         }
 
         workbook.addChild(sheets);
+
+        var themeRelationship = Xml.createElement('Relationship');
+        themeRelationship.set('Id', 'rID$refID');
+        themeRelationship.set('Target', 'theme/theme1.xml');
+        themeRelationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme');
+        workbookRels.addChild(themeRelationship);
+        refID++;
+
+        var stylesRelationship = Xml.createElement('Relationship');
+        stylesRelationship.set('Id', 'rID$refID');
+        stylesRelationship.set('Target', 'styles.xml');
+        stylesRelationship.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles');
+        workbookRels.addChild(stylesRelationship);
+        refID++;
 
         var sharedStringsRelationship = Xml.createElement('Relationship');
         sharedStringsRelationship.set('Id', 'rId$refID');
@@ -237,20 +250,13 @@ class XlsxWriter
         // TODO rewrite all of this to be easier to read with inline xml once haxe adds support for that
         var worksheet = Xml.createElement('worksheet');
         worksheet.set('xmlns', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        worksheet.set('xmlns:r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
 
-        // sheetPr
-        var sheetPr = Xml.createElement('sheetPr');
-        var outlinePr = Xml.createElement('outlinePr');
-        outlinePr.set('summaryBelow', '1');
-        outlinePr.set('summaryRight', '1');
-        sheetPr.addChild(outlinePr);
-        sheetPr.addChild(Xml.createElement('pageSetUpPr'));
-        worksheet.addChild(sheetPr);
 
         // sheetViews
         var sheetViews = Xml.createElement('sheetViews');
         var sheetView = Xml.createElement('sheetView');
-        sheetView.set('workbookViewId', '1');
+        sheetView.set('workbookViewId', '0');
         var selection = Xml.createElement('selection');
         selection.set('activeCell', 'A1');
         selection.set('sqref', 'A1');
@@ -346,6 +352,11 @@ class XlsxWriter
         return v;
     }
 
+    static public function timeToOADate(date:Date):Float
+    {
+        return ((date.getHours() * 3600) + (date.getMinutes() * 60) + date.getSeconds()) / 86400;
+    }
+
     // To the whacky format Microsoft uses - days since 1900
     static public function toOADate(date:Date):Float
     {
@@ -367,14 +378,14 @@ class XlsxWriter
         // Calculate the whole/day portion
         var oaDate:Float = Math.ffloor(146097 * century / 4) + Math.ffloor((1461 * decade) / 4) +
                            Math.ffloor((153 * month + 2) / 5) + date.getDate() + 1721119 - 2415019;
-
+        
         // Correct for Excel wrongly thinking 1900 was a leap year
         if (year == 1900 && month <= 2) {
             oaDate -= 1;
         }
 
         // Calculate the fractional/time portion
-        oaDate += ((date.getHours() * 3600) + (date.getMinutes() * 60) + date.getSeconds()) / 86400;
+        oaDate += timeToOADate(date);
 
         return oaDate;
     }
@@ -382,7 +393,10 @@ class XlsxWriter
     static private function valueXmlFromDate(cell:Cell):Xml
     {
         var v = Xml.createElement('v');
-        var number = Xml.createPCData(Std.string(toOADate(cell.dateValue)));
+        var dateTime:Float = 0.0;
+        if (cell.cellType == Date) dateTime = toOADate(cell.dateValue);
+        else dateTime = timeToOADate(cell.dateValue);
+        var number = Xml.createPCData(Std.string(dateTime));
         v.addChild(number);
         return v;
     }

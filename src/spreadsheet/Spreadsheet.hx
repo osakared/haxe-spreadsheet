@@ -40,8 +40,13 @@ class Spreadsheet
                         case TInt: cell.setInt(cellMetadata);
                         case TFloat: cell.setFloat(cellMetadata);
                         case TClass(String):
-                            if (dateExp.match(cellMetadata) || timeExp.match(cellMetadata)) {
+                            if (dateExp.match(cellMetadata)) {
                                 cell.setDate(Date.fromString(cellMetadata));
+                            }
+                            else if (timeExp.match(cellMetadata)) {
+                                // Should this hack of adding a date to get around weirdness in haxe live somewhere else?
+                                var date = Date.fromString('1971-01-01 ' + cellMetadata);
+                                cell.setTime(date);
                             }
                             else cell.setText(cellMetadata);
                         default: trace('Not implemented type found in json');
