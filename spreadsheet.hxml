@@ -41,7 +41,7 @@ spreadsheet.Spreadsheet
 -main SpreadsheetExporter
 
 -cpp bin/SpreadsheetExporter
--cmd ./bin/SpreadsheetExporter/SpreadsheetExporter ../../example/source.json ../../example/source.xlsx
+-cmd ./bin/SpreadsheetExporter/SpreadsheetExporter ./example/source.json ./example/source.xlsx
 
 # -python bin/SpreadsheetExporter.py
 # -cmd python3 bin/SpreadsheetExporter.py
